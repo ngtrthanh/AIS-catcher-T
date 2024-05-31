@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>AIS40k on maptiler</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <style>
+		body {
+			padding: 0;
+			margin: 0;
+		}
+		html, body, #map {
+			height: 100%;
+			width: 100vw;
+		}
+      #ship-count {
+        position: absolute;
+        bottom: 1px;
+        left: 1px;
+        background-color: #99E370;
+        padding: 8px;
+        border-radius: 4px;
+        font-family: "Lato", sans-serif;
+        font-size: 12px;
+        font-weight: 300;
+        color: #333333;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="ship-count">
+      <span id="hpradar-link">© HPRadar</span> | 🚢 <span id="ship-count-value"></span>
+    </div>
+
+    <script>
+      var map = new maplibregl.Map({
+        container: "map",
+        zoom: 2.0,
+        center: [0, 30],
+        style: "https://api.maptiler.com/maps/streets/style.json?key=nRYox0R1ZyZ6XqSStq4S",
+      });
+
+      map.addControl(new maplibregl.NavigationControl());
+
+      var shipsSource = null;
+      var unclusteredPointLayer = null;
+      var popup = null;
+
+      function addClusterLayer() {
+        shipsSource = {
+          type: "geojson",
+          data: "ships_tiny_geo.json",
+          cluster: true,
+          clusterRadius: 80,
+          clusterMaxZoom: 11,
+          clusterProperties: {
+            count: ["+", 1],
+          },
+        };
+
+        map.addSource("ships", shipsSource);
+
+        const colorVar = ["#C70039", "#FF5733", "#FFC300", "#DAF7A6", "#99E370", "#45B39D"];
+        const step = [10, 50, 100, 1000, 5000];
+        const radius = [10, 15, 20, 25, 30, 40];
+
+        map.addLayer({
+          id: "clusters",
+          type: "circle",
+          source: "ships",
+          filter: ["has", "point_count"],
+          paint: {
+            "circle-color": ["step", ["get", "point_count"], ...colorVar.flatMap((color, i) => step[i] !== undefined ? [color, step[i]] : [color])],
+            "circle-radius": ["step", ["get", "point_count"], ...radius.flatMap((r, i) => step[i] !== undefined ? [r, step[i]] : [r])]
+          }
+        });
+
+        map.addLayer({
+          id: "cluster-count",
+          type: "symbol",
+          source: "ships",
+          filter: ["has", "point_count"],
+          layout: {
+            "text-field": "{point_count_abbreviated}",
+            "text-font": ["Open Sans Regular"],
+            "text-size": 14,
+          },
+          paint: {
+            "text-color": "#000000",
+          },
+        });
+
+        unclusteredPointLayer = {
+          id: "unclustered-point",
+          type: "circle",
+          source: "ships",
+          filter: ["!", ["has", "point_count"]],
+          paint: {
+            "circle-color": "#11b4da",
+            "circle-radius": 6,
+            "circle-stroke-width": 1,
+            "circle-stroke-color": "#fff",
+          },
+        };
+
+        map.addLayer(unclusteredPointLayer);
+
+        map.on("mouseenter", "unclustered-point", function (e) {
+          var coordinates = e.features[0].geometry.coordinates.slice();
+          var mmsi = e.features[0].properties[0];
+          var shipName = e.features[0].properties[8];
+          var country = e.features[0].properties[6];
+
+          map.getCanvas().style.cursor = "pointer";
+
+          var flagSrc;
+
+          if (country === "") {
+            flagSrc = "https://upload.wikimedia.org/wikipedia/commons/8/81/Flag_of_the_United_Nations_%28small%29.png";
+          } else {
+            flagSrc = `https://www.countryflagicons.com/FLAT/48/${country}.png`;
+          }
+
+          var popupContent = `
+              <div>
+                <img src="${flagSrc}" alt="Country Flag" style="width: 48px; margin-right: 5px;">
+                <strong>MMSI:</strong> ${mmsi}<br>
+                <strong>Ship Name:</strong> ${shipName}<br>
+                <strong>Country:</strong> ${country}
+              </div>
+            `;
+          popup = new maplibregl.Popup()
+            .setLngLat(coordinates)
+            .setHTML(popupContent)
+            .addTo(map);
+        });
+
+        map.on("mouseleave", "unclustered-point", function () {
+          map.getCanvas().style.cursor = "";
+          if (popup) {
+            popup.remove();
+          }
+        });
+
+        map.addLayer({
+          id: "ship-label",
+          type: "symbol",
+          source: "ships",
+          filter: ["!", ["has", "point_count"]],
+          layout: {
+            "text-field": "{mmsi}",
+            "text-font": ["Open Sans Regular"],
+            "text-size": 16,
+            "text-anchor": "top",
+          },
+          paint: {
+            "text-color": "#ffffff",
+          },
+        });
+      }
+
+      function refreshData() {
+        if (!shipsSource) return; // No source, return
+
+        // Fetch new data
+        fetch("ships_tiny_geo.json")
+          .then((response) => response.json())
+          .then((data) => {
+            shipsSource.data = data;
+            map.getSource("ships").setData(data);
+
+            // Count the ships
+            const shipCount = data.length.toLocaleString();
+
+            // Update the ship count display
+            const shipCountValueElement = document.getElementById("ship-count-value");
+            shipCountValueElement.textContent = shipCount;
+          })
+          .catch((error) => {
+            console.error("Error fetching data:", error);
+          });
+      }
+
+      map.on("load", function () {
+        addClusterLayer();
+
+        map.on("zoom", function () {
+          updateZoomLevel();
+        });
+
+        refreshData(); // Call the function initially to display the ship count
+
+        // Refresh interval to update ship movement every 10 seconds and update data
+        const intervalRF = 30;
+        setInterval(function () {
+          refreshData();
+        }, intervalRF * 1000);
+      });
+
+      function updateZoomLevel() {
+        var zoom = map.getZoom();
+        map.setPaintProperty("unclustered-point", "circle-radius", ["interpolate", ["linear"], ["zoom"], 2, 6, 4, 10, 8, 8]);
+      }
+
+      const hpradarLinkElement = document.getElementById("hpradar-link");
+
+      hpradarLinkElement.addEventListener("mouseover", function () {
+        hpradarLinkElement.style.cursor = "pointer";
+        hpradarLinkElement.style.textDecoration = "underline";
+      });
+
+      hpradarLinkElement.addEventListener("mouseout", function () {
+        hpradarLinkElement.style.cursor = "default";
+        hpradarLinkElement.style.textDecoration = "none";
+      });
+
+      hpradarLinkElement.addEventListener("click", function () {
+        window.location.href = "https://hpradar.com";
+      });
+    </script>
+  </body>
+</html>

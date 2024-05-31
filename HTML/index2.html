@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Ships: All, Everywhere, Now!</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-providers/1.13.0/leaflet-providers.js"></script>
+        <script src="https://d3js.org/d3.v6.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-realtime/2.0.0/leaflet-realtime.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster-src.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css" />
+
+    <style>
+		body {
+			padding: 0;
+			margin: 0;
+		}
+		html, body, #map {
+			height: 100%;
+			width: 100vw;
+		}
+		    .ship-count-box {
+			background-color: #f5f5dc; /* ededed */
+			padding: 5px;
+			border-radius: 5px;
+	    }
+    </style>
+	
+    </head>
+    <body>
+        <div id="map" ></div>
+		
+        <script>
+            // Set the initial map center and zoom level
+            const initialCenter = [25, 44];
+            const initialZoomLevel = 3;
+
+            // Create the map instance and set the initial view
+            const map = L.map("map").setView(initialCenter, initialZoomLevel);
+
+            // Define the tile layers
+            const tileLayers = {
+                "Toner Lite": L.tileLayer.provider("Stamen.TonerLite"),
+                "Watercolor": L.tileLayer.provider("Stamen.Watercolor"),
+                "Terrain": L.tileLayer.provider("Stamen.Terrain"),
+                "MapTiler Street": L.tileLayer.provider("MapTiler.Streets", {
+                    key: "nRYox0R1ZyZ6XqSStq4S",
+                }),
+                "Jawg Terrain": L.tileLayer.provider("Jawg.Terrain", {
+                    accessToken: "qML7E6HmMKb6LQJgxHedkuht58y48dIpzawFGfCXdHzqnZWQlscx5zmyw7uYgTZG",
+                }),
+            };
+
+            // Add the default tile layer to the map
+            tileLayers["MapTiler Street"].addTo(map);
+			
+			map.removeControl(map.zoomControl);			
+			L.control.layers(tileLayers, null, { position: 'bottomright' }).addTo(map);
+			L.control.zoom({ position: 'bottomright' }).addTo(map);
+            // Create a marker cluster group
+
+            const markerClusterGroup = L.markerClusterGroup({
+                disableClusteringAtZoom: 12,
+            });
+
+            const AToNIconSvg =
+                '<svg preserveAspectRatio="xMidYMid" width="11.077" height="19.511" viewBox="0 0 11.077 19.511" xmlns="http://www.w3.org/2000/svg"><path d="M8.915 0C7.72 0 6.752.984 6.752 2.197s.968 2.198 2.163 2.198c1.194 0 2.162-.985 2.162-2.198S10.108 0 8.915 0Zm.439 5.604L8.21 13.068c-.587 3.34 1.04 3.345 1.04 3.345h1.038v.986H7.242c0 1.166-.93 2.112-2.078 2.112-1.148 0-2.079-.946-2.079-2.112H0v-.986h1.005s1.197-.11 2.599-3.414l3.153-8.064Zm-4.19 10.68c-.606 0-1.097.5-1.097 1.115 0 .616.49 1.115 1.097 1.115.606 0 1.097-.498 1.097-1.114 0-.616-.491-1.116-1.097-1.116z" style="fill:yellow;stroke:#010101;stroke-width:.6;stroke-dasharray:none;stroke-opacity:.6;fill-rule:evenodd"/></svg>';
+
+            const bstIconSvg =
+                '<svg width="28.406" height="32" viewBox="0 0 7.516 8.467" xml:space="preserve" xmlns="http://www.w3.org/2000/svg"><path style="fill:blue;stroke-width:.0160914" d="M3.683 9.389c-.026-.026-.047-.062-.047-.08 0-.02.166-.684.37-1.478a1666.182 1666.182 0 0 1 .835-3.253l.207-.81-.07-.088c-.252-.308-.244-.685.018-.968a.685.685 0 0 1 .58-.223.66.66 0 0 1 .44.196c.28.268.3.68.046.992l-.074.09.216.843a1339.755 1339.755 0 0 0 .538 2.098c.287 1.104.659 2.573.659 2.6 0 .019-.021.055-.047.081-.062.062-.133.063-.192.003-.037-.039-.07-.149-.251-.861-.115-.45-.214-.817-.22-.817-.007 0-.412.211-.902.47l-1.356.713-.466.245-.028.11c-.045.18-.155.238-.256.137Zm1.079-.99c.305-.162.682-.36.837-.44.557-.29.725-.382.725-.396 0-.013-.358-.185-1.432-.685a1.915 1.915 0 0 0-.3-.123.655.655 0 0 0-.063.19c-.023.1-.064.262-.09.359-.081.31-.369 1.435-.369 1.446 0 .013.01.008.692-.352zm1.77-1.356a370.692 370.692 0 0 0-.316-1.236.935.935 0 0 0-.054-.175c-.01-.01-.275.158-.685.431-.369.246-.664.453-.656.46.007.006.216.106.464.222l.877.41c.235.11.43.198.436.195a2.314 2.314 0 0 0-.067-.307zM5.978 5.35c-.05-.061-.839-.74-.848-.73a8.667 8.667 0 0 0-.127.471l-.195.765a5.032 5.032 0 0 0-.079.334c0 .02.182-.094.634-.395.521-.347.63-.426.615-.445Zm-.121-.935c-.07-.276-.13-.504-.134-.506a.626.626 0 0 0-.105.013.567.567 0 0 1-.201 0 .564.564 0 0 0-.106-.013 2.418 2.418 0 0 0-.052.187l-.046.183.035.035c.133.133.729.641.733.624a7.836 7.836 0 0 0-.124-.523Zm-.199-.796a.465.465 0 0 0 .251-.222.542.542 0 0 0 .038-.146.433.433 0 0 0-.678-.397.436.436 0 0 0-.001.709c.118.08.245.099.39.056ZM2.475 5.41c-.067-.067-.228-.332-.336-.553a3.87 3.87 0 0 1-.348-1.113 4.518 4.518 0 0 1 .007-1.116c.105-.592.302-1.09.61-1.538.073-.106.091-.12.174-.12.04 0 .064.013.095.05a.175.175 0 0 1 .041.083 1.1 1.1 0 0 1-.118.22c-.22.346-.347.64-.445 1.024-.089.346-.104.48-.104.877.001.381.014.49.099.828.095.381.243.719.47 1.072a.81.81 0 0 1 .098.188.171.171 0 0 1-.041.083c-.052.062-.148.07-.202.015zm5.885-.015c-.023-.027-.042-.065-.042-.083 0-.018.045-.103.1-.188a3.44 3.44 0 0 0 .571-2.037 2.911 2.911 0 0 0-.102-.724 3.495 3.495 0 0 0-.47-1.072.775.775 0 0 1-.099-.19c0-.053.084-.13.143-.13.082 0 .1.016.214.192.287.44.474.933.57 1.506.04.233.04.82.001 1.07a3.887 3.887 0 0 1-.555 1.49c-.126.193-.149.215-.226.215-.051 0-.072-.01-.105-.05zM3.352 4.89c-.225-.24-.468-.787-.546-1.23a2.791 2.791 0 0 1 .337-1.83c.1-.169.212-.322.253-.344a.142.142 0 0 1 .165.027c.07.07.058.117-.077.318a2.226 2.226 0 0 0-.29.572 2.02 2.02 0 0 0-.128.798c-.001.348.018.475.118.78.077.233.149.378.3.605.135.201.146.249.077.318-.064.064-.14.058-.209-.014Zm4.124.011c-.067-.07-.057-.114.07-.304.15-.222.231-.388.307-.617.1-.304.119-.43.118-.78 0-.252-.007-.334-.036-.468a2.526 2.526 0 0 0-.391-.917c-.127-.186-.137-.233-.066-.301.069-.066.138-.06.214.02.126.133.352.546.43.79a2.75 2.75 0 0 1-.274 2.34c-.127.205-.202.282-.273.282a.125.125 0 0 1-.099-.045zm-3.174-.476c-.111-.049-.333-.392-.424-.656a1.372 1.372 0 0 1-.088-.568c0-.268.028-.415.116-.632.104-.253.304-.541.406-.584.09-.037.193.04.193.145 0 .017-.04.08-.088.14-.464.578-.464 1.299 0 1.877.048.06.088.123.088.14a.153.153 0 0 1-.08.136c-.057.03-.06.03-.123.002zm2.3-.009a.12.12 0 0 1-.063-.089c-.011-.061-.004-.075.14-.258a1.5 1.5 0 0 0 .27-.635c.065-.41-.05-.815-.33-1.164a.477.477 0 0 1-.087-.14c0-.06.033-.113.087-.139.084-.04.139-.01.262.146a1.73 1.73 0 0 1 .292 1.585c-.109.342-.37.726-.496.726a.214.214 0 0 1-.076-.032z" transform="translate(-1.76 -.972)"/></svg>';
+
+            const UFOIconSvg =
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 511.672 511.672" style="enable-background:new 0 0 511.672 511.672" xml:space="preserve"><path style="fill:#ed5564" d="M227.674 44.901s.047-.031.141-.109c-.031.031-3.342 2.437-9.088 3.514-7.745 1.437-16.208-.109-25.14-4.591-31.386-15.771-68.175-.968-69.721-.344l.016.062c-3.88 1.593-6.621 5.403-6.621 9.869 0 5.887 4.771 10.649 10.657 10.649 1.694 0 3.295-.406 4.716-1.109 4.466-1.624 30.816-10.416 51.381-.078 10.954 5.497 20.706 7.371 28.919 7.371 17.028 0 27.42-8.073 28.044-8.573l-13.304-16.661z"/><path style="fill:#7f4545" d="M234.514 31.973c-5.887 0-10.657 4.778-10.657 10.665v351.704h21.322V42.638c0-5.887-4.778-10.665-10.665-10.665zm277.158 287.682c0-5.887-4.777-10.665-10.648-10.665-1.031 0-2.016.156-2.951.422l-.234.062-108.213 31.073 5.871 20.487 108.463-31.137c4.448-1.279 7.712-5.385 7.712-10.242z"/><path style="fill:#a85d5d" d="m10.689 308.99 99.725 33.385s39.116 41.239 124.1 41.239c85 0 106.611-29.138 106.611-29.138l85.258-24.484c9.588 160.21-122.656 149.561-122.656 149.561H115.294c-86.171-5.996-73.633-88.568-73.633-88.568l-13.187-9.728-4.208-18.021L0 351.635l10.689-42.645z"/><path style="fill:#965353" d="M426.664 335.317c-5.871 132.337-122.938 122.905-122.938 122.905H115.294c-57.409-3.981-71.001-41.973-73.68-66.879-.765 5.84-9.205 82.432 73.68 88.209h188.433c0 .001 129.277 10.416 122.937-144.235z"/><path style="fill:#434a54" d="M277.166 415.594a10.642 10.642 0 0 0 10.649 10.649c5.888 0 10.649-4.763 10.649-10.649s-4.762-10.665-10.649-10.665c-5.886 0-10.649 4.778-10.649 10.665zm-42.652 0c0 5.887 4.778 10.649 10.665 10.649s10.657-4.763 10.657-10.649-4.77-10.665-10.657-10.665-10.665 4.778-10.665 10.665zm-42.637 0c0 5.887 4.771 10.649 10.657 10.649s10.665-4.763 10.665-10.649-4.778-10.665-10.665-10.665-10.657 4.778-10.657 10.665zm-42.637 0c0 5.887 4.771 10.649 10.657 10.649s10.657-4.763 10.657-10.649-4.771-10.665-10.657-10.665-10.657 4.778-10.657 10.665zm-49.671-85.289C114.942 207.719 74.616 95.869 74.616 95.869h260.169c80.105 93.783 24.953 234.561 24.953 234.561-96.906-44.581-260.169-.125-260.169-.125z"/><g style="opacity:.1"><path style="fill:#fff" d="M334.785 95.869h-21.314c69.206 81.026 37.445 197.147 27.529 227.222 6.434 2.123 12.695 4.56 18.738 7.339 0 0 55.153-140.778-24.953-234.561z"/></g><path style="fill:#e6e9ed" d="M170.555 196.477c0-35.321 28.638-63.959 63.959-63.959 35.329 0 63.951 28.638 63.951 63.959 0 18.941-8.213 35.961-21.299 47.672v26.952h-85.289v-26.952c-13.085-11.711-21.322-28.731-21.322-47.672z"/><path style="fill:#434a54" d="M250.503 196.477c0 5.887 4.778 10.665 10.665 10.665 5.888 0 10.658-4.778 10.658-10.665s-4.771-10.665-10.658-10.665c-5.886 0-10.665 4.778-10.665 10.665zm-53.293 0c0 5.887 4.771 10.665 10.657 10.665s10.657-4.778 10.657-10.665-4.771-10.665-10.657-10.665-10.657 4.778-10.657 10.665z"/><path style="fill:#ccd1d9" d="M277.166 271.085c-.016-5.871-4.777-10.649-10.673-10.649-5.887 0-10.657 4.778-10.657 10.665h21.33v-.016z"/><path style="fill:#ccd1d9" d="M255.836 271.085c0-5.871-4.77-10.649-10.657-10.649s-10.665 4.778-10.665 10.665h21.322v-.016zm-21.322 0c0-5.871-4.771-10.649-10.657-10.649s-10.657 4.778-10.657 10.665h21.314v-.016zm-21.315 0c-.008-5.871-4.778-10.649-10.665-10.649s-10.657 4.778-10.657 10.665h21.322v-.016z"/></svg>';
+
+            const SARIconSvg =
+                '<svg width="48" height="48" viewBox="0 0 7.68 7.68" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="iconify iconify--noto"><path d="M4.921 7.18c-.02-.003-.331-.004-.757-.004l-.281-.93-.256.067.241.863-1.549-.001.283-.854h-.304l-.278.853a26.679 26.679 0 0 1-.533-.004c-.114-.01-.251-.095-.308-.128-.057-.033-.161-.166-.261-.057-.1.109.072.243.19.318a.886.886 0 0 0 .479.119c.114 0 3.302.005 3.344 0s.1-.071.1-.119-.034-.113-.109-.124z" fill="#feb804"/><path d="M6.235 2.878c-.043-.005-2.566-.043-2.566-.043s-.058-.091-.216-.134c.128-.006.225-.016.23-.027.038-.085-.147-.227-.436-.232-.271-.004-.465.137-.441.242.004.016.121.023.269.025-.153.047-.222.137-.222.137s-2.476.098-2.548.103-.128.028-.128.085.033.104.095.104 2.4-.085 2.4-.085l-1.143.323c-.067.019-.152.043-.142.1.01.057.095.052.147.038S3.08 3.13 3.08 3.13v.412a.992.992 0 0 0-.247.014c-.045.035-.089.199-.109.341a3.465 3.465 0 0 0-.028.351l.655.038.256-.731-.152-.006v-.392l1.641.418c.043.01.114.005.119-.038.005-.043-.005-.08-.062-.104s-1.29-.375-1.29-.375 2.234 0 2.334-.005c.1-.005.128-.033.128-.09 0-.056-.047-.08-.09-.085z" fill="#5e6367"/><path d="m.998 5.344-.133.124-.18.256s-.09.237.199.418c.289.18.655.318 1.916.289 1.262-.028 1.812-.271 2.049-.565.237-.294.256-.55.256-.55l.394-.379.859.014s.323.883.332.901c.01.019.232.019.232.019l.166-.47s-.024-.527-.01-.583c.014-.057.436-1.376.427-1.423s-.019-.05-.052-.052c-.033-.002-.119.002-.119.002l-.864.92-.068.157-.172.028-1.259-.104s0-.108-.032-.205a2.384 2.384 0 0 0-.116-.257l-1.761.115-.123.19-.589.305-1.353.85z" fill="#ffa62d"/><path d="M6.854 3.342c-.012.02-.382.924-.382.924l.463 1.197s-.006.044-.056.055-.154-.064-.154-.064l.161.416s.396 0 .4-.014-.272-1.26-.272-1.288.361-1.236.361-1.236-.512-.008-.522.01zM4.593 4.489s.179.111.286.239c.094.113.214.304.214.304l.397-.314.936.043s-.01-.181-.018-.221c-.011-.053-.036-.121-.036-.121l-1.4-.097-.378.168zM3.064 4s.296.041.804.071c.425.025.74.046.872-.022.091-.047.118-.097.118-.097s-.132-.282-.186-.314c-.053-.032-.721-.113-1.064-.082-.286.025-.544.443-.544.443zm1.837 1.026s-.542-.86-1.906-.835C1.632 4.217 1.388 5.24 1.388 5.24l.486.149s.026.136-.045.154c-.07.017-.683.014-.774.011-.161-.006-.169-.118-.169-.118s-.088.067-.133.139c-.046.073-.069.148-.069.148s.044.131.278.231c.233.1.898.234 1.84.228.941-.006 1.741-.225 1.966-.586.226-.36.134-.571.134-.571zm-2.081.517c-.049.039-.494.055-.564-.008-.056-.051.004-.16.004-.16l.197-.123s.403.047.405.113c.001.056-.007.151-.042.178zm.989.022c-.077.025-.401.032-.472.025-.07-.007-.127-.005-.162-.069s-.014-.17-.014-.17l.775-.146s.001.125-.007.206a.183.183 0 0 1-.121.155z" fill="#ffd61c"/><path d="M2.493 4.536c-.055.046-.267.824-.233.839.034.015.569.019.602-.011s.104-.818.08-.842c-.024-.023-.405-.023-.449.014zm.737.017c-.028.02-.08.809-.068.84.014.04.158.031.367.031s.398-.041.412-.172c.016-.147.007-.384 0-.484s-.11-.182-.257-.209c-.112-.02-.416-.034-.453-.006zM1.8 5.668c-.029-.034-.419-.014-.436.278-.01.178.209.284.257.281s.082-.113.13-.268c.041-.132.068-.268.048-.292z" fill="#5e6367"/><path d="M.973 5.38c.014.055.861.045.902.02.034-.02.35-1.025.336-1.046s-.329.024-.792.412c-.285.239-.459.559-.446.614z" fill="#868686"/><path d="M2.52 4.9c.059.017.113-.103.168-.13s.14-.068.137-.12c-.004-.062-.175-.11-.244-.055s-.153.277-.061.305zm.806-.24c-.048.052-.062.268.01.281.072.014.106-.082.168-.127.062-.044.155-.073.151-.151-.004-.061-.244-.096-.329-.003z" fill="#c9c7c4"/><path d="M1.978 4.54c-.047-.043-.305.113-.487.284-.171.161-.339.375-.291.439.079.106.247-.172.436-.34.091-.081.422-.312.343-.384z" fill="#c8c8c8"/><path d="M6.455 3.794c-.087.019 0 .406.03.535s.116.314.116.314l.178-.083s-.056-.29-.116-.459-.133-.323-.208-.307zm.188 1.001s-.002.139.069.347c.069.204.161.381.241.356.074-.023.023-.331-.014-.463-.037-.131-.118-.299-.118-.299l-.179.058z" fill="#999a9d"/><path d="M6.656 4.523c-.139.052-.13.165-.1.238a.168.168 0 0 0 .22.079c.083-.037.134-.11.093-.224-.026-.074-.104-.134-.214-.093z" fill="#5e6367"/></svg>';
+
+            const shipIconSvg =
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.3 -0.3 16.6 36.6"><path d="{{SHIP_ICON_PATH}}" style="fill:{{SHIP_TYPE_COLOR}};fill-opacity:.8;stroke:#010101;stroke-width:.6;stroke-dasharray:none;stroke-opacity:.3"/></svg>';
+            // #010101
+
+            const shipIconUrl = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(shipIconSvg);
+            const AToNIconUrl = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(AToNIconSvg);
+            const SARIconUrl = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(SARIconSvg);
+            const bstIconUrl = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(bstIconSvg);
+            const UFOIconUrl = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(UFOIconSvg);
+
+            const shipColors = {
+                1: "#CD5C5C", // IndianRed
+                2: "#F08080", // LightCoral
+                3: "#FA8072", // Salmon
+                4: "#E9967A", // DarkSalmon
+                5: "#FFA07A", // LightSalmon
+                6: "#DC143C", // Crimson
+                7: "#FF0000", // Red
+                8: "#B22222", // FireBrick
+                9: "#8B0000", // DarkRed
+                10: "#FFC0CB", // Pink
+                11: "#FFB6C1", // LightPink
+                12: "#FF69B4", // HotPink
+                13: "#FF1493", // DeepPink
+                14: "#C71585", // MediumVioletRed
+                15: "#DB7093", // PaleVioletRed
+                16: "#FFA07A", // LightSalmon (Orange)
+                17: "#FF7F50", // Coral
+                18: "#FF6347", // Tomato
+                19: "#FF4500", // OrangeRed
+                20: "#FF8C00", // DarkOrange
+                21: "#FFA500", // Orange
+                22: "#FFD700", // Gold (Yellow)
+                23: "#FFFF00", // Yellow
+                24: "#FFFFE0", // LightYellow
+                25: "#FFFACD", // LemonChiffon
+                26: "#FAFAD2", // LightGoldenrodYellow
+                27: "#FFEFD5", // PapayaWhip
+                28: "#FFE4B5", // Moccasin
+                29: "#FFDAB9", // PeachPuff
+                30: "#EEE8AA", // PaleGoldenrod
+                31: "#F0E68C", // Khaki
+                32: "#BDB76B", // DarkKhaki
+                33: "#E6E6FA", // Lavender (Purple)
+                34: "#D8BFD8", // Thistle
+                35: "#DDA0DD", // Plum
+                36: "#EE82EE", // Violet
+                37: "#DA70D6", // Orchid
+                38: "#FF00FF", // Fuchsia
+                39: "#FF00FF", // Magenta
+                40: "#BA55D3", // MediumOrchid
+                41: "#9370DB", // MediumPurple
+                42: "#663399", // RebeccaPurple
+                43: "#8A2BE2", // BlueViolet
+                44: "#9400D3", // DarkViolet
+                45: "#9932CC", // DarkOrchid
+                46: "#8B008B", // DarkMagenta
+                47: "#800080", // Purple
+                48: "#4B0082", // Indigo
+                49: "#6A5ACD", // SlateBlue
+                50: "#483D8B", // DarkSlateBlue
+                51: "#7B68EE", // MediumSlateBlue
+                52: "#ADFF2F", // GreenYellow (Green)
+                53: "#7FFF00", // Chartreuse
+                54: "#7CFC00", // LawnGreen
+                55: "#00FF00", // Lime
+                56: "#32CD32", // LimeGreen
+                57: "#98FB98", // PaleGreen
+                58: "#90EE90", // LightGreen
+                59: "#00FA9A", // MediumSpringGreen
+                60: "#00FF7F", // SpringGreen
+                61: "#3CB371", // MediumSeaGreen
+                62: "#2E8B57", // SeaGreen
+                63: "#228B22", // ForestGreen
+                64: "#008000", // Green
+                65: "#006400", // DarkGreen
+                66: "#9ACD32", // YellowGreen
+                67: "#6B8E23", // OliveDrab
+                68: "#808000", // Olive
+                69: "#556B2F", // DarkOliveGreen
+                70: "#FF4500", // MediumAquamarine
+                71: "#8FBC8F", // DarkSeaGreen
+                72: "#20B2AA", // LightSeaGreen
+                73: "#008B8B", // DarkCyan
+                74: "#008080", // Teal
+                75: "#00FFFF", // Aqua/Cyan
+                76: "#00FFFF", // LightCyan
+                77: "#E0FFFF", // LightBlue
+                78: "#AFEEEE", // PaleTurquoise
+                79: "#7FFFD4", // Aquamarine
+                80: "#40E0D0", // Turquoise
+                81: "#48D1CC", // MediumTurquoise
+                82: "#00CED1", // DarkTurquoise
+                83: "#5F9EA0", // CadetBlue
+                84: "#4682B4", // SteelBlue
+                85: "#B0C4DE", // LightSteelBlue
+                86: "#B0E0E6", // PowderBlue
+                87: "#ADD8E6", // LightBlue
+                88: "#87CEEB", // SkyBlue
+                89: "#87CEFA", // LightSkyBlue
+                90: "#00BFFF", // DeepSkyBlue
+                91: "#1E90FF", // DodgerBlue
+                92: "#6495ED", // CornflowerBlue
+                93: "#4169E1", // RoyalBlue
+                94: "#0000FF", // Blue
+                95: "#0000CD", // MediumBlue
+                96: "#00008B", // DarkBlue
+                97: "#000080", // Navy
+                98: "#191970", // MidnightBlue
+                99: "#F5F5DC", // Beige
+                // Add more colors here...
+            };
+
+            for (let i = 0; i <= 16636; i++) {
+                if (!shipColors.hasOwnProperty(i)) {
+                    shipColors[i] = "red";
+                }
+            }
+
+            const markerIcons = {
+                ship: L.divIcon({
+                    className: "ship-icon",
+                    iconSize: [24, 24],
+                    html: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="#010101" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="8" /></svg>',
+                }),
+                SAR: L.icon({ iconUrl: SARIconUrl, iconSize: [24, 24] }),
+                AtoN: L.icon({ iconUrl: AToNIconUrl, iconSize: [24, 24] }),
+                baseStation: L.icon({ iconUrl: bstIconUrl, iconSize: [24, 24] }),
+                UFO: L.icon({ iconUrl: UFOIconUrl, iconSize: [24, 24] }),
+            };
+
+            let countControl;
+
+            let ufoLayerGroup = L.layerGroup(); // Create a layer group for UFO markers
+
+            async function createMarkers() {
+                try {
+                    const response = await fetch("ships_mini_geo.json");
+                    const data = await response.json();
+
+                    let mmsiCount = 0;
+                    //let shipCount = 0;
+                    let atonCount = 0;
+                    let sarCount = 0;
+                    let bstCount = 0;
+                    let ufoCount = 0;
+					let shipCountS = 0;
+					let shipCountA = 0;
+
+                    // Count the ships
+                    mmsiCount = data.length.toLocaleString();
+
+                    // Clear the existing markers from the map
+                    markerClusterGroup.clearLayers();
+
+                    const markers = L.geoJSON(data, {
+                        onEachFeature: function (feature, layer) {
+                            const [mmsi, heading, shiptype] = feature.properties;
+
+                            //console.log(mmsi);
+
+                            let markerType, icon;
+
+                            if (mmsi >= 201000000 && mmsi <= 775999999) {
+                                //shipCount++;
+                                markerType = "Ship";
+                                icon = markerIcons.ship;
+
+                                const shipColor = shipColors[parseInt(shiptype)] || "gray";
+
+                                if (heading === null) {
+									shipCountA++;
+                                    // Create a circle marker
+                                    const circleMarker = L.circleMarker(layer.getLatLng(), { radius: 4, color: shipColor, fillOpacity: 0.9 });
+                                    layer = circleMarker;
+
+                                    const popupContent = `MMSI: ${mmsi}<br>Type: ${markerType}<br>Heading: Unknown<br>Shiptype: ${shiptype}<br>Color: ${shipColor}`;
+                                    circleMarker.bindPopup(popupContent);
+                                } else {
+									shipCountS++;
+                                    const shipIconPath = "M 0 18 L 4 0 l 4 18 C 5 15 3 15 0 18 z";
+                                    const shipIconSvgWithColor = shipIconSvg.replace(/{{SHIP_TYPE_COLOR}}/g, shipColor).replace(/{{SHIP_ICON_PATH}}/g, shipIconPath);
+                                    const shipIconUrl = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(shipIconSvgWithColor);
+                                    const updatedIcon = L.icon({ iconUrl: shipIconUrl, iconSize: [24, 24] });
+
+                                    const rotationStyle = `transform: rotate(${heading}deg);`;
+                                    const iconHtml = `<img src="${updatedIcon.options.iconUrl}" style="${rotationStyle}">`;
+                                    layer.setIcon(
+                                        L.divIcon({
+                                            className: "ship-icon",
+                                            html: iconHtml,
+                                            iconSize: [24, 24],
+                                        })
+                                    );
+
+                                    const popupContent = `MMSI: ${mmsi}<br>Type: ${markerType}<br>Heading: ${heading}<br>Shiptype: ${shiptype}<br>Color: ${shipColor}`;
+                                    layer.bindPopup(popupContent);
+                                }
+                            } else if (mmsi >= 2010000 && mmsi <= 7759999) {
+                                markerType = "Base station";
+                                icon = markerIcons.baseStation;
+
+                                layer.setIcon(icon);
+
+                                const popupContent = `MMSI: ${mmsi}<br>Type: ${markerType}`;
+                                layer.bindPopup(popupContent);
+
+                                bstCount++;
+                            } else if (mmsi >= 111201000 && mmsi <= 111775999) {
+                                markerType = "SAR";
+                                icon = markerIcons.SAR;
+
+                                // Increase the size of the icon
+                                const iconSize = [32, 32]; // Adjust the width and height as needed
+
+                                layer.setIcon(
+                                    L.icon({
+                                        iconUrl: icon.options.iconUrl,
+                                        iconSize: iconSize,
+                                    })
+                                );
+
+                                const popupContent = `MMSI: ${mmsi}<br>Type: ${markerType}`;
+                                layer.bindPopup(popupContent);
+
+                                //map.setView(layer.getLatLng(), 12);
+
+                                //console.log(`SAR-MMSI: ${mmsi}, Postion: ${layer.getLatLng()}`);
+
+                                sarCount++;
+                            } else if (mmsi >= 992010000 && mmsi <= 997759999) {
+                                markerType = "AtoN";
+                                icon = markerIcons.AtoN;
+                                layer.setIcon(icon);
+
+                                const popupContent = `MMSI: ${mmsi}<br>Type: ${markerType}`;
+                                layer.bindPopup(popupContent);
+
+                                //console.log(`SAR-MMSI: ${mmsi}, Postion: ${layer.getLatLng()}`);
+
+                                atonCount++;
+                            } else {
+                                markerType = "UFO";
+                                icon = markerIcons.UFO;
+
+                                layer.setIcon(icon);
+
+                                const popupContent = `MMSI: ${mmsi}<br>Type: ${markerType}<br>Shiptype: ${shiptype}<br>Color: ${shipColors[parseInt(shiptype)]}`;
+                                layer.bindPopup(popupContent);
+
+                                ufoCount++;
+                            }
+
+                            markerClusterGroup.addLayer(layer);
+
+                            // Remove the previous countControl if it exists
+                            if (countControl) {
+                                countControl.remove();
+                            }
+
+                            // Create a control for displaying counts
+                            countControl = L.control({ position: "topleft" });
+
+                            countControl.onAdd = function (map) {
+                                const div = L.DomUtil.create("div", "ship-count-box");
+                                div.innerHTML = `<span id="hpradar-link">© HPRadar</span> AIS40k|📡${mmsiCount}|🚢${shipCountS.toLocaleString()}|⚓${shipCountA.toLocaleString()}|🗼${bstCount}|🚁${sarCount}|🛟${atonCount.toLocaleString()}|🛸${ufoCount}`;
+                                return div;
+                            };
+
+                            countControl.addTo(map);
+                        },
+                    });
+                    const hpradarLinkElement = document.getElementById("hpradar-link");
+
+                    hpradarLinkElement.addEventListener("mouseover", function () {
+                        hpradarLinkElement.style.cursor = "pointer";
+                        hpradarLinkElement.style.textDecoration = "underline";
+                    });
+
+                    hpradarLinkElement.addEventListener("mouseout", function () {
+                        hpradarLinkElement.style.cursor = "default";
+                        hpradarLinkElement.style.textDecoration = "none";
+                    });
+
+                    hpradarLinkElement.addEventListener("click", function () {
+                        window.location.href = "https://hpradar.com";
+                    });
+
+                    map.addLayer(markerClusterGroup);
+                } catch (error) {
+                    console.error("Failed to fetch or process data:", error);
+                }
+            }
+
+            // Call the createMarkers function on load and every 60 seconds
+            createMarkers();
+            setInterval(createMarkers, 20 * 1000);
+        </script>
+    </body>
+</html>

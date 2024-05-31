@@ -1,0 +1,130 @@
+function add_radar() {
+
+        var center = [48.675528, -3.922222],
+            radarbeam = {"type":"LineString", "coordinates": [[center[1], center[0]], [center[1], center[0]]]};
+        //var map = L.map('map').setView(center, 7);
+
+        // Add polar craticule
+        var rings = [];
+        [50000, 100000, 150000, 200000, 250000].forEach(function(r) {
+            rings.push(
+                L.circle(
+                    center, {
+                        radius: r,
+                        fill: false,
+                        weight: r % 100000 == 0 ? 1.35 : 0.75,
+                        color: '#808080'
+                    }
+                ).addTo(map)
+            );
+        });
+
+        var xy1 = map.options.crs.project(L.latLng(center)),
+            radius = 270000;
+        var right = L.point(xy1).add([radius, 0]),
+            left = L.point(xy1).subtract([radius, 0]),
+            tops = L.point(xy1).add([0, radius]),
+            bottom = L.point(xy1).subtract([0, radius]);
+
+        var crosshairs = [
+            L.polyline([map.options.crs.unproject(left), map.options.crs.unproject(right)], {weight: 1.5, color: '#808080'}).addTo(map),
+            L.polyline([map.options.crs.unproject(tops), map.options.crs.unproject(bottom)], {weight: 1.5, color: '#808080'}).addTo(map),
+        ];
+
+        [45, 135, 225, 315].forEach(function(angle) {
+            crosshairs.push(
+                L.polyline([
+                    map.options.crs.unproject(L.point([
+                        xy1.x + Math.sin(angle * Math.PI / 180) * 75000,
+                        xy1.y + Math.cos(angle * Math.PI / 180) * 75000
+                    ])),
+                    map.options.crs.unproject(L.point([
+                        xy1.x + Math.sin(angle * Math.PI / 180) * radius,
+                        xy1.y + Math.cos(angle * Math.PI / 180) * radius
+                    ]))
+                ],
+                    {weight: 0.75, color: '#808080'}
+                ).addTo(map)
+            );
+        });
+
+        var anglelabels = [
+            L.polyline([map.options.crs.unproject(left), map.options.crs.unproject(left)], {weight: 0.1, color: '#fffff', opacity:0}).addTo(map).bindTooltip('<b>270&deg; </b>', {permanent: true, opacity: 0.7, direction: 'left'}).openTooltip(),
+            L.polyline([map.options.crs.unproject(right), map.options.crs.unproject(right)], {weight: 0.1, color: '#fffff', opacity:0}).addTo(map).bindTooltip('<b> 90&deg;</b>', {permanent: true, opacity: 0.7, direction: 'right'}).openTooltip(),
+            L.polyline([map.options.crs.unproject(tops), map.options.crs.unproject(tops)], {weight: 0.1, color: '#fffff', opacity:0}).addTo(map).bindTooltip('<b>0&deg;</b>', {permanent: true, opacity: 0.7, direction: 'top'}).openTooltip(),
+            L.polyline([map.options.crs.unproject(bottom), map.options.crs.unproject(bottom)], {weight: 0.1, color: '#fffff', opacity:0}).addTo(map).bindTooltip('<b>180&deg;</b>', {permanent: true, opacity: 0.7, direction: 'bottom'}).openTooltip()
+        ];
+
+        // add a revolving "radar-hand"
+        var radar = L.geoJSON(
+            radarbeam, {
+            onEachFeature : function(feature, layer) {
+                var arclength = 1;
+                var sumangle = 360;
+
+                // sector is the slice of circle we'll use as a "beam shadow"
+                // aswell use it to test point-in-polygon for aircraft icon fade-out
+                var sector = {
+                    type:"Polygon",
+                    coordinates: [ [
+                        feature.coordinates[0], feature.coordinates[1],
+                        feature.coordinates[1], feature.coordinates[0]]]
+                };
+
+                var beamshadow = L.geoJSON(
+                    sector, {
+                    style: function(feature){
+                        return {
+                            opacity:0.75,
+                            color: '#109856',
+                            weight:0.1,
+                            className:'radar-hand'
+                        }
+                    }
+                }).addTo(map);
+
+                setInterval(function(){
+                    // animate "radar beam"
+                    if (sumangle >= 360) {
+                        sumangle = 0;
+                    } else {
+                        sumangle += arclength;
+                    }
+                    var beamlatlngs = layer.getLatLngs(),
+                        beamshadowlatlngs = beamshadow.getLayers()[0].getLatLngs();
+
+                    // calculate a new location for the beam linestring.
+
+                    beamlatlngs[1] = map.options.crs.unproject(
+                        L.point([
+                            xy1.x + Math.sin(sumangle * Math.PI / 180) * radius,
+                            xy1.y + Math.cos(sumangle * Math.PI / 180) * radius
+                        ])
+                    );
+
+                    // and a new location for the trailing corner of the beam shadow
+
+                    beamshadowlatlngs[0][1] = map.options.crs.unproject(
+                        L.point([
+                            xy1.x + Math.sin((sumangle - 5 * arclength) * Math.PI / 180) * radius,
+                            xy1.y + Math.cos((sumangle - 5 * arclength) * Math.PI / 180) * radius
+                        ])
+                    );
+
+                    next = [beamshadowlatlngs[0][0], beamlatlngs[1], beamshadowlatlngs[0][1], beamshadowlatlngs[0][0]];
+                    beamshadow.getLayers()[0].setLatLngs(next);
+                    layer.setLatLngs(beamlatlngs).bringToFront();
+
+                    
+
+                }, 50);
+            },
+            style: function(feature) {
+                return {color: '#109856', weight: 3, opacity:0.5}
+            }
+        }).addTo(map);
+
+
+};
+
+plugins_main.push(add_radar);

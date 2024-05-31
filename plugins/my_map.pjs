@@ -1,0 +1,78 @@
+// {"author":"jvde-github","description":"use maps without labels"}
+
+removeTileLayerAll();
+removeOverlayLayerAll();
+
+addTileLayer("Voyager",L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+	subdomains: 'abcd',
+	maxZoom: 20
+}));
+
+addTileLayer("Stamen-lite",L.tileLayer(
+            'https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.png', {
+                attribution: 'Map tiles by <a href="http://stamen.com">' +
+                    'Stamen Design</a>, under' +
+                    '<a href="http://creativecommons.org/licenses/by/3.0">' +
+                    'CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">' +
+                    'OpenStreetMap</a>, under' +
+                    '<a href="http://www.openstreetmap.org/copyright">ODbL</a>.'
+            }
+        ));
+
+
+addTileLayer("Stamen-watercolor",L.tileLayer(
+            'https://stamen-tiles-{s}.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.png', {
+                attribution: 'Map tiles by <a href="http://stamen.com">' +
+                    'Stamen Design</a>, under' +
+                    '<a href="http://creativecommons.org/licenses/by/3.0">' +
+                    'CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">' +
+                    'OpenStreetMap</a>, under' +
+                    '<a href="http://www.openstreetmap.org/copyright">ODbL</a>.'
+            }
+        ));
+		
+addTileLayer("Stamen-terrain",L.tileLayer(
+            'https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.png', {
+                attribution: 'Map tiles by <a href="http://stamen.com">' +
+                    'Stamen Design</a>, under' +
+                    '<a href="http://creativecommons.org/licenses/by/3.0">' +
+                    'CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">' +
+                    'OpenStreetMap</a>, under' +
+                    '<a href="http://www.openstreetmap.org/copyright">ODbL</a>.'
+            }
+        ));		
+
+addTileLayer("googleStreets", L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
+    maxZoom: 20,
+    subdomains:['mt0','mt1','mt2','mt3']
+}));
+
+
+addTileLayer("googleSattelite", L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+    maxZoom: 20,
+    subdomains:['mt0','mt1','mt2','mt3']
+}));
+addTileLayer("googleTerrain", L.tileLayer('http://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',{
+    maxZoom: 20,
+    subdomains:['mt0','mt1','mt2','mt3']
+}));
+
+addTileLayer("Mapbox", L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', { 
+	attribution: '\u003ca href="https://www.mapbox.com/about/maps/">Mapbox</a> | <a href="https://www.openstreetmap.org/about/">OpenStreetMap',
+	maxZoom: 18,
+	id: 'mapbox/streets-v11',
+	tileSize: 512,
+	zoomOffset: -1,
+	accessToken: 'pk.eyJ1IjoidGhhbmhudDIwMjMiLCJhIjoiY2xma2Y0aW1nMGFkYTNzbXRpcG1zcDJ3diJ9.S0HL4Mnx2YuAZhwmHktHEg'}));
+
+addTileLayer("MapTiler Basic", L.tileLayer(`https://api.maptiler.com/maps/basic-v2/{z}/{x}/{y}.png?key=nRYox0R1ZyZ6XqSStq4S`, {
+  tileSize: 512,
+  zoomOffset: -1,
+  minZoom: 1,
+  attribution: '\u003ca href="https://www.maptiler.com/copyright/" target="_blank"\u003e\u0026copy; MapTiler\u003c/a\u003e \u003ca href="https://www.openstreetmap.org/copyright" target="_blank"\u003e\u0026copy; OpenStreetMap contributors\u003c/a\u003e',
+  crossOrigin: true
+}));
+
+
+

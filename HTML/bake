@@ -1,0 +1,20 @@
+minify index.html | gzip > index_html_gz
+xxd -i index_html_gz > HTML.cpp
+
+
+gzip favicon.ico > favicon_ico_gzip
+xxd -i favicon_ico_gzip > favicon.cpp
+
+
+minify i1.html | gzip > i1_html_gz
+xxd -i i1_html_gz > HTML1.cpp
+
+
+//i1_html_gz, i1_html_gz_len
+
+minify i1.html | gzip > i1_html_gz
+xxd -i i1_html_gz > i1.cpp
+
+
+minify i2.html | gzip > i2_html_gz
+xxd -i i2_html_gz > i2.cpp
